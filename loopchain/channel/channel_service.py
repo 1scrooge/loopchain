@@ -39,7 +39,7 @@ from loopchain.utils.message_queue import StubCollection
 
 
 class ChannelService:
-    def __init__(self, channel_name, amqp_target, amqp_key):
+    def __init__(self, channel_name, amqp_target, amqp_key, rollback=False):
         self.__block_manager: BlockManager = None
         self.__score_container: CommonSubprocess = None
         self.__score_info: dict = None
@@ -48,6 +48,7 @@ class ChannelService:
         self.__rs_client: RestClient = None
         self.__timer_service = TimerService()
         self.__node_subscriber: NodeSubscriber = None
+        self._rollback: bool = rollback
 
         loggers.get_preset().channel_name = channel_name
         loggers.get_preset().update_logger()
@@ -204,7 +205,23 @@ class ChannelService:
         await self.__inner_service.connect(conf.AMQP_CONNECTION_ATTEMPTS, conf.AMQP_RETRY_DELAY, exclusive=True)
         await self.__init_sub_services()
 
+    async def _manual_rollback(self):
+        logging.info("_manual_rollback() start manual rollback")
+        if self.block_manager.blockchain.block_height >= 0:
+            self.block_manager.rebuild_block()
+
+        if self.block_manager.request_rollback():
+            message = "rollback finished"
+        else:
+            message = "rollback cancelled"
+        self.shutdown_peer(message=message)
+        logging.info("_manual_rollback() end manual rollback")
+
     async def evaluate_network(self):
+        if self._rollback:
+            await self._manual_rollback()
+            return
+
         await self._init_rs_client()
         self.__block_manager.blockchain.init_crep_reps()
         await self._select_node_type()
