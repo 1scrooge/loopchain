@@ -633,7 +633,7 @@ class BlockManager:
             result_height = response.get("blockHeight")
             if hex(target_block.header.height) == result_height:
                 util.logger.info(f"request_rollback() Rollback Success. result height = {result_height}")
-                self.blockchain.roll_back(target_block)
+                self.blockchain.rollback(target_block)
                 self.rebuild_block()
                 return True
 
