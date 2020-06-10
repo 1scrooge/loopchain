@@ -637,7 +637,7 @@ class BlockManager:
                 self.rebuild_block()
                 return True
 
-        util.logger.warning(f"request_rollback() response = {response}")
+        util.logger.warning(f"request_rollback() Rollback Fail. response = {response}")
         return False
 
     def __block_height_sync(self):
